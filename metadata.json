@@ -1,0 +1,8 @@
+{
+  "name": "  ProofLoop",
+  "description": "ProofLoop: The AI That Follows Through. Turn goals into verifiable outcomes with real MCP tools, human-in-the-loop approvals, and proof-of-completion verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

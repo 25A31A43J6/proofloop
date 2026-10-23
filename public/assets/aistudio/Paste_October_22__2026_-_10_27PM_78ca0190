@@ -1,0 +1,645 @@
+# PROOFLOOP — COMPLETE BACKGROUND VOICE ASSISTANT UPGRADE
+
+## OBJECTIVE
+
+Upgrade ONLY the existing Background Voice Assistant in my ProofLoop application into a reliable, intelligent, hands-free conversational assistant.
+
+My goal is to activate the voice assistant, keep using the existing ProofLoop dashboard, speak naturally, receive spoken responses, and control supported workflows without opening a separate panel, dashboard, modal, drawer, popup, or new page.
+
+**Core experience: Click Voice Assistant → Speak → ProofLoop understands → Executes through the existing agent → Responds aloud → Continues listening.**
+
+Inspect the existing project before making changes. Upgrade the current voice implementation rather than rebuilding the application.
+
+### STRICT SCOPE
+
+Only modify:
+- Background voice controller.
+- Speech recognition.
+- Text-to-speech.
+- Voice session management.
+- Voice-specific UI indicators and controls.
+- Necessary integration points connecting voice to the existing ProofLoop agent.
+
+Do not redesign the dashboard or modify unrelated business logic, Proof Verified functionality, database architecture, email configuration, existing workflows, MCP tools, authentication, or application styling.
+
+Preserve all working functionality. Reuse the existing code and integrations wherever possible.
+
+Do not create a second chatbot, duplicate agent, or fake command-execution system.
+
+---
+
+## 1. BACKGROUND VOICE EXPERIENCE
+
+When I click the existing Voice Assistant button:
+
+1. Check browser support and microphone availability.
+2. Request microphone permission if required.
+3. Start the selected voice mode after permission is granted.
+4. Keep the current dashboard, route, and layout unchanged.
+5. Listen for my spoken command.
+6. Recognize and finalize the transcript.
+7. Submit the accepted command to the existing ProofLoop agent exactly once.
+8. Allow the existing agent to use its authorized backend and MCP tools.
+9. Speak the actual result.
+10. Resume listening if Hands-Free Conversation is enabled and the session is still active.
+
+Do not navigate to another route or open a separate interface.
+
+Show only a small, accessible status indicator near the existing Voice Assistant button.
+
+Supported status labels should include:
+- Idle
+- Listening
+- Processing
+- Working
+- Awaiting Approval
+- Speaking
+- Paused
+- Error
+
+These statuses must reflect actual controller state. Do not simulate them with arbitrary timers or decorative animations.
+
+Never activate the microphone automatically when the page loads. Explicit user activation and the browser's permission requirements must be respected.
+
+---
+
+## 2. FOUR VOICE MODES
+
+Implement the following modes through the existing interface without creating a new dashboard.
+
+### Mode A: Push to Talk
+
+Let me click the microphone button, speak, and submit my command.
+
+Stop recognition when the interaction finishes or I explicitly stop the session.
+
+Display the finalized transcript so I can review or edit it before submission when appropriate.
+
+### Mode B: Hands-Free Conversation — PRIMARY MODE
+
+This is the main experience I want.
+
+After I explicitly start a session, ProofLoop should listen, understand, execute, respond aloud, and continue listening without requiring another microphone click after every response.
+
+Example:
+
+Me: "Prepare my internship application."
+
+ProofLoop: "Sure. Which company are you applying to?"
+
+Me: "Microsoft."
+
+ProofLoop: "Which role are you applying for?"
+
+Me: "Software development intern."
+
+ProofLoop: "I'll prepare the application with those details."
+
+ProofLoop should retain the conversation context, understand follow-up answers, and ask only necessary clarification questions.
+
+Use the following interaction cycle:
+
+LISTEN → FINALIZE TRANSCRIPT → UNDERSTAND → EXECUTE → SPEAK RESPONSE → RESUME LISTENING.
+
+Pause or suppress recognition while the assistant is speaking unless the selected engine provides reliable simultaneous listening and echo control.
+
+Provide an explicit Stop Conversation control. Stopping the session must immediately stop recognition and must not automatically restart it.
+
+### Mode C: Optional Wake Phrase
+
+Where genuinely supported, provide an optional configurable wake phrase such as "Hey ProofLoop."
+
+After detecting the wake phrase, recognize the user's command and send it through the existing agent.
+
+First determine whether the selected browser and speech engine can reliably support wake-phrase detection.
+
+Do not pretend that a continuously running wake-word engine exists if it has not been implemented.
+
+If continuous wake-word detection is not supported, clearly indicate that limitation and provide Hands-Free Conversation and Push to Talk as alternatives.
+
+Do not attempt to bypass browser permissions, operating-system restrictions, or microphone security controls.
+
+### Mode D: Background Workflow Continuation
+
+When I start a supported workflow, its backend operations should continue independently of the microphone session whenever the existing backend architecture supports this.
+
+I should be able to stop voice listening or navigate to another ProofLoop route without accidentally canceling a running backend workflow.
+
+Preserve the workflow identifier, conversation context, and actual task status.
+
+When voice is active again, the assistant should be able to explain the workflow's real progress and result.
+
+Do not claim continuous microphone access or spoken notifications when the browser has suspended the tab, the browser has closed, or audio delivery is unavailable.
+
+---
+
+## 3. GLOBAL VOICE CONTROLLER
+
+Inspect the current React and application architecture.
+
+Implement or upgrade one global VoiceController, using the existing architecture such as React Context and a reusable service.
+
+Mount it at the appropriate application root so route changes do not create duplicate controllers.
+
+Maintain a single source of truth for:
+- Current voice mode.
+- Recognition session state.
+- Microphone permission state.
+- Current transcript.
+- Preferred recognition language.
+- Current conversation context.
+- Current workflow identifier.
+- Current agent request identifier.
+- Active speech output.
+- Pending approval reference.
+- Mute and stop state.
+- Recognition and speech errors.
+
+Use a well-defined state machine with valid transitions between IDLE, LISTENING, PROCESSING, WORKING, AWAITING_APPROVAL, SPEAKING, PAUSED, and ERROR.
+
+Requirements:
+- Only one active recognition session.
+- Only one active speech output at a time.
+- No duplicate event listeners.
+- No duplicate microphone sessions after route changes.
+- No duplicate command submissions.
+- No stale callbacks that execute commands for an older session.
+- No automatic restart after the user has explicitly stopped voice.
+- Correct cleanup of recognition resources and microphone media tracks owned by the application.
+
+Stopping the voice controller must stop voice activity without unintentionally canceling server-side workflows.
+
+---
+
+## 4. COMPLETE SPEECH RECOGNITION SYSTEM
+
+Upgrade the existing speech-recognition implementation for reliable voice input.
+
+### A. Speech engine and browser compatibility
+
+Inspect the existing speech engine first.
+
+Reuse a working configured speech service if one already exists. Otherwise, use the browser Web Speech API (`SpeechRecognition` or `webkitSpeechRecognition`) where available.
+
+Detect feature support at runtime.
+
+Do not assume that all browsers support:
+- Continuous recognition.
+- Interim results.
+- Every language.
+- Reliable automatic restart.
+- Wake-phrase detection.
+- Simultaneous recognition and speech playback.
+
+If speech recognition is unavailable, keep ProofLoop usable and provide a text-input fallback.
+
+Never claim that a browser feature works unless the implementation actually supports it.
+
+### B. Multilingual recognition
+
+Support these preferred locales when available through the selected recognition engine:
+
+- English (India): `en-IN`
+- English (US): `en-US`
+- Telugu (India): `te-IN`
+- Hindi (India): `hi-IN`
+
+Provide a language selector using the existing interface.
+
+Remember the selected language through the existing application preference mechanism where appropriate.
+
+Use English (India) as the default unless the existing project already defines a different preference.
+
+Allow language changes without creating duplicate recognition sessions.
+
+Enable automatic language detection or mixed-language recognition only if the actual recognition engine supports it reliably.
+
+Do not claim that selecting one language automatically enables reliable recognition of Telugu, Hindi, and English in the same sentence.
+
+Preserve recognized words, names, numbers, and scripts as returned by the engine. Do not silently translate or change a transcript in a way that changes the user's intended command.
+
+### C. Microphone permission
+
+When voice is explicitly activated:
+
+1. Check browser support.
+2. Check microphone permission state when the browser exposes it reliably.
+3. Request access when necessary.
+4. Initialize a single recognition session.
+5. Configure supported recognition properties and the selected locale.
+6. Start listening.
+7. Display the genuine listening status.
+
+Handle permission denial without crashing the application.
+
+Do not repeatedly request permissions.
+
+If permission is denied, explain how to enable it in the browser settings and provide text input as a fallback.
+
+If the Permissions API is unavailable or unreliable, handle recognition errors appropriately instead of assuming permission status.
+
+Release microphone resources when voice is stopped or the application no longer needs them.
+
+### D. Interim and final results
+
+Handle recognition result events correctly.
+
+- Display interim transcripts as temporary previews.
+- Execute commands only from validated final transcripts.
+- Accumulate finalized segments correctly when multiple results belong to the same utterance.
+- Avoid appending finalized segments twice.
+- Preserve punctuation and meaningful words provided by the recognition engine.
+- Handle empty transcripts and incomplete speech gracefully.
+- Provide controls to review, edit, clear, or retry a transcript where appropriate.
+
+Never execute a consequential action, send an email, submit an application, or approve a pending operation using interim text.
+
+Before submitting a command, normalize only harmless formatting differences.
+
+Treat names, email addresses, dates, amounts, recipients, negations, and other action-critical parameters carefully. Ask for clarification when their interpretation is uncertain.
+
+Do not invent a confidence score if the engine does not provide one.
+
+### E. Reliable continuous recognition
+
+Browsers may terminate recognition after silence, after returning a result, or because of browser restrictions.
+
+When Hands-Free Conversation is active:
+
+1. Start recognition.
+2. Receive speech events.
+3. Wait for finalized, non-empty speech.
+4. Process the accepted transcript once.
+5. Send it through the existing authorized ProofLoop agent.
+6. Wait for the actual response.
+7. Speak the response.
+8. Resume listening if the session remains enabled.
+
+Handle unexpected recognition termination using a bounded retry strategy.
+
+Before restarting, confirm that:
+- Hands-Free Conversation remains enabled.
+- The user has not stopped or canceled the session.
+- The current session has not been replaced.
+- The document and browser permit recognition to continue.
+- The microphone remains available.
+
+Prevent overlapping restart attempts and infinite retry loops.
+
+If recovery fails, display the actual error and allow the user to retry.
+
+### F. Silence and ambiguous speech
+
+Handle:
+- No speech detected.
+- Long pauses.
+- Background noise.
+- Incomplete phrases.
+- Recognition errors.
+- Late recognition callbacks.
+- Unsupported languages.
+- Unclear transcripts.
+- The assistant's own speech being captured as user input.
+
+Do not interpret silence as a command or approval.
+
+If the final transcript is empty or unusable, ask the user to repeat the command.
+
+If the command is ambiguous, ask a focused clarification question instead of guessing.
+
+Where supported, provide a configurable silence timeout without discarding an already finalized transcript simply because a timer expires.
+
+### G. Prevent duplicate commands and self-listening
+
+Coordinate speech recognition and speech synthesis through the same global voice controller.
+
+- Pause or suppress recognition while ProofLoop is speaking where appropriate.
+- Resume recognition only after speech has finished and the selected mode remains active.
+- Use session identifiers or generation counters to reject stale callbacks.
+- Track submitted command identifiers or equivalent deduplication state.
+- Prevent recognition restarts from re-submitting a command already accepted by the agent.
+- Handle duplicate browser result events safely.
+- Ignore recognition callbacks received after manual stop or session replacement.
+- Never treat microphone activation as permission to perform a consequential action.
+
+Prefer pausing recognition during speech playback over unreliable simultaneous listening.
+
+For backend operations, preserve existing authorization checks and use idempotency or equivalent safeguards where appropriate.
+
+### H. Error handling
+
+Handle relevant recognition errors individually, including:
+- `not-allowed`
+- `service-not-allowed`
+- `audio-capture`
+- `no-speech`
+- `network`
+- `aborted`
+- Unsupported browser or recognition service.
+- Unsupported locale.
+- Unexpected session termination.
+
+Display understandable messages.
+
+Examples:
+
+Permission denied: "Microphone access is blocked. Enable it in your browser settings or use text input."
+
+Microphone unavailable: "I couldn't access a microphone. Please check your device."
+
+No speech detected: "I didn't hear a command. Please try again."
+
+Network error: "Speech recognition encountered a connection problem. You can retry or type your command."
+
+Unsupported browser: "Voice recognition is unavailable in this browser. You can use text input or open ProofLoop in a supported browser."
+
+Do not expose API keys, secrets, stack traces, or private diagnostic information.
+
+Do not turn errors into fake success messages.
+
+---
+
+## 5. INTELLIGENT TEXT-TO-SPEECH
+
+Upgrade the existing speech output to sound conversational and responsive.
+
+Reuse the existing implementation or use browser SpeechSynthesis where appropriate.
+
+Support:
+- Configurable voice when available.
+- Adjustable speech rate.
+- Concise, natural spoken responses.
+- Optional language-appropriate speech voices where available.
+- Short progress announcements for long-running supported tasks.
+- Immediate Stop Speaking control.
+- Mute and unmute.
+- Prevention of overlapping speech.
+- Correct handling of interrupted or canceled speech.
+- Graceful fallback when speech synthesis is unavailable.
+
+Do not read full documents, database records, tool payloads, internal API logs, or credentials aloud.
+
+Summarize useful information.
+
+Speak only results supported by actual agent or service responses.
+
+Never say a task succeeded before the relevant operation has actually succeeded.
+
+If the backend or MCP service fails, explain the real failure aloud and preserve recoverable information.
+
+### Interruptions
+
+Where the browser and speech architecture support it, allow commands that interrupt the assistant, including:
+- "Stop speaking."
+- "Repeat that."
+- "Explain again."
+- "Wait."
+- "Continue."
+- "Cancel the workflow."
+
+If reliable voice interruption is unavailable, provide an immediate Stop Speaking button.
+
+Stopping speech must not automatically cancel a backend workflow.
+
+Workflow cancellation must occur only when explicitly requested and supported by the existing backend.
+
+---
+
+## 6. NATURAL CONVERSATION AND CONTEXT
+
+Maintain context through the existing ProofLoop agent and conversation state.
+
+Support natural follow-up commands such as:
+- "What is left?"
+- "Continue."
+- "Retry that."
+- "What happened?"
+- "Why did it fail?"
+- "Use the previous recipient."
+- "Change the subject first."
+- "Tell me the result."
+
+Resolve references through actual conversation and workflow identifiers.
+
+If the reference is ambiguous, ask for clarification.
+
+Do not invent context or guess which workflow the user means.
+
+Preserve the existing memory implementation and avoid creating an unnecessary second memory store.
+
+Do not send raw audio or unnecessary transcript data to unrelated services.
+
+---
+
+## 7. SPOKEN APPROVALS AND EXISTING SAFETY RULES
+
+Integrate with the existing ProofLoop approval mechanism. Do not rebuild or weaken approval logic.
+
+For consequential actions, the assistant should speak a clear approval question and listen for the response after speech finishes.
+
+Example:
+
+ProofLoop: "Your internship application is ready. Would you like me to send it to the displayed recipient?"
+
+Me: "Yes, send it."
+
+The assistant must process the answer through the existing approval system.
+
+Requirements:
+- Silence is not approval.
+- Microphone activation is not approval.
+- Interim transcripts are not approval.
+- Ambiguous responses require clarification.
+- Spoken rejection must prevent execution.
+- Editing a draft or changing action parameters must invalidate prior approval where required.
+- Approval must apply only to the exact pending action.
+- Preserve backend authorization and duplicate-execution protections.
+- Keep existing visible approval controls available as a fallback.
+- Never execute a consequential action just because the voice assistant heard the word "yes" outside a valid pending approval context.
+
+If microphone recognition fails during approval, preserve the pending action and ask the user to use the existing approval control or retry voice.
+
+Do not create a new approval architecture. Reuse the current one.
+
+---
+
+## 8. ROUTE CHANGES AND BROWSER BACKGROUND LIMITATIONS
+
+Keep the global voice controller mounted across ProofLoop routes.
+
+Handle route changes without duplicating recognition sessions, destroying pending workflow state, or restarting an explicitly stopped session.
+
+Detect browser visibility changes when possible.
+
+When a tab is hidden, suspended, or restored:
+- Preserve server-side workflow state.
+- Detect recognition interruptions where possible.
+- Avoid claiming that continuous recognition is still active when it is not.
+- Resume safely only when the browser permits it and the user has not disabled voice.
+- Ask for reactivation when browser restrictions require it.
+
+Do not claim that a normal website can reliably listen continuously after the browser is closed or the tab is suspended.
+
+Do not attempt to bypass browser permissions or use unsupported background execution tricks.
+
+Keep backend workflow execution independent of microphone state wherever the existing architecture supports it.
+
+---
+
+## 9. USER INTERFACE AND ACCESSIBILITY
+
+Preserve the current ProofLoop dashboard design.
+
+Do not introduce:
+- A separate voice dashboard.
+- A voice-only page.
+- A modal or drawer.
+- A full-screen overlay.
+- A large visualizer.
+- An intrusive notification layer.
+
+Use the existing Voice Assistant button and add only necessary lightweight controls:
+- Start or stop listening.
+- Choose the recognition language.
+- Start or stop Hands-Free Conversation.
+- View, edit, or clear the transcript.
+- Retry recognition.
+- Mute or stop speaking.
+- View the actual voice status.
+
+Provide accessible labels and keyboard controls.
+
+Ensure stopping the assistant immediately updates the real controller state and prevents automatic restart.
+
+---
+
+## 10. USE THE EXISTING PROOFLOOP AGENT
+
+All voice commands must use the existing authorized agent and its real workflow execution path.
+
+The pipeline must be:
+
+MICROPHONE → SPEECH RECOGNITION → FINAL TRANSCRIPT → COMMAND VALIDATION → EXISTING PROOFLOOP AGENT → EXISTING MCP/BACKEND TOOLS → ACTUAL RESULT → SPOKEN RESPONSE.
+
+Inspect the actual project before assuming that specific tools or endpoints exist.
+
+Do not create fake tools or hardcode successful outcomes.
+
+Preserve existing:
+- MCP integration.
+- Authentication and authorization.
+- Workflow execution.
+- Persistent memory.
+- Approval requirements.
+- Verification logic.
+- Email integration.
+- Database persistence.
+- Error handling.
+
+Modify only the necessary integration points for background voice.
+
+If a command cannot be processed because the agent, MCP server, or backend is unavailable, explain the actual problem and preserve the transcript for retry.
+
+Never bypass existing security requirements.
+
+---
+
+## 11. RELIABILITY, PRIVACY, AND CLEANUP
+
+Ensure:
+- One recognition session at a time.
+- One speech output at a time.
+- Proper cleanup of event listeners.
+- Safe cleanup of microphone tracks.
+- No automatic microphone activation after page reload.
+- No automatic listening after explicit user stop.
+- No endless reconnection loops.
+- No duplicate commands after recognition retries.
+- No stale approval execution.
+- No unnecessary raw-audio storage.
+- No logging of credentials or unnecessary sensitive content.
+- Correct handling of unsupported APIs and browser restrictions.
+- No interference with unrelated ProofLoop features.
+
+Use the existing state-management and service patterns where possible. Avoid unnecessary dependencies.
+
+---
+
+## 12. TESTING AND VALIDATION
+
+Inspect the existing test framework and add or update tests for:
+
+1. Browser speech-recognition feature detection.
+2. Microphone permission granted and denied.
+3. Missing microphones and audio-capture failures.
+4. English, Telugu, and Hindi locale selection where supported.
+5. Unsupported locales.
+6. Interim versus final transcript processing.
+7. Multiple final recognition segments.
+8. Empty and ambiguous transcripts.
+9. Recognition termination and bounded retries.
+10. Manual Stop preventing restart.
+11. Duplicate transcript and command prevention.
+12. Rejection of stale callbacks.
+13. Speech playback preventing accidental self-listening.
+14. Hands-free listening resuming after a response.
+15. Route changes without duplicate controllers.
+16. Text-input fallback.
+17. Commands reaching the existing agent.
+18. MCP errors and backend timeouts.
+19. Spoken approval through the existing approval system.
+20. Preservation of unrelated ProofLoop functionality.
+
+Run the actual relevant tests, type checks, lint checks, and production build.
+
+For every check, report the actual command and result.
+
+Use mocked speech APIs for unit tests when necessary, but distinguish mocked tests from actual microphone tests.
+
+Do not claim successful end-to-end microphone testing unless it was performed in a browser with microphone access.
+
+---
+
+## 13. FINAL IMPLEMENTATION REPORT
+
+After implementation, report:
+
+- The exact files changed.
+- What the previous voice implementation did.
+- What was improved.
+- Which voice modes actually work.
+- Which browsers and recognition languages were actually tested.
+- Whether wake-phrase detection is genuinely implemented.
+- How interim and final transcripts are handled.
+- How duplicate command execution is prevented.
+- How microphone permissions and unexpected session termination are handled.
+- How speech output, interruption, and resumed listening work.
+- Which tests and build checks were actually executed.
+- Remaining browser limitations and configuration requirements.
+
+Clearly distinguish implemented features from partially implemented features and future recommendations.
+
+Do not claim everything works simply because code was generated.
+
+## FINAL ACCEPTANCE CRITERIA
+
+The upgrade is complete only when:
+
+- Clicking Voice Assistant does not open another interface.
+- The user can explicitly activate and stop voice.
+- Speech recognition processes final transcripts reliably.
+- Supported English, Telugu, and Hindi locales can be selected.
+- Accepted commands reach the existing ProofLoop agent.
+- Each accepted command is submitted exactly once.
+- The assistant speaks the actual response.
+- Hands-free mode resumes listening when supported and enabled.
+- Route changes do not create duplicate microphone sessions.
+- Browser interruptions and recognition errors are handled honestly.
+- Spoken approvals reuse the existing approval system.
+- Existing security and backend authorization are preserved.
+- No unrelated ProofLoop features are changed.
+- Actual test and build results are reported honestly.
+
+**Priority order: accurate recognition, reliable hands-free conversations, safe execution, correct microphone lifecycle, natural spoken responses, and minimal UI changes.**
+
+Inspect the current implementation first, make the targeted changes, execute the available checks, and provide the actual implementation report.
