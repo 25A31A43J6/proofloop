@@ -193,10 +193,3 @@ NODE_ENV="development"
 
 ---
 
-## 9. 3-Minute Video Demo Script
-
-- **0:00 - 0:30 (The Problem)**: Most AI agents generate advice and to-do lists, but fail to follow through or hallucinate completion. Introduce **ProofLoop**: *"Don't just make a plan. Get it done."*
-- **0:30 - 1:15 (The Hackathon Goal)**: Enter the goal: *"Help me prepare my hackathon submission and make sure it is ready before the deadline."* Watch ProofLoop search sample guidelines and cross-reference architecture docs via MCP tools.
-- **1:15 - 1:45 (Proof of Completion & Failure Recovery)**: Click **"Test Failures"** to show self-healing recovery when an operation encounters network timeout. Click **"Inspect Proof"** to show the SHA-256 cryptographic evidence record.
-- **1:45 - 2:30 (Human Authorization & MCP Center)**: Show the approval gate before sending the draft email. Review the payload preview and click **Approve**. Navigate to the **MCP Tools Center** to inspect live tools running over Streamable HTTP.
-- **2:30 - 3:00 (Persistent Memory & Conclusion)**: Show the **Memory Center** retaining user preferences and deadlines after browser refresh. Summary of Alexa+ track compliance.
